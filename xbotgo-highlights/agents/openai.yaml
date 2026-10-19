@@ -1,0 +1,4 @@
+interface:
+  display_name: "足球比赛集锦"
+  short_description: "从足球原片生成高光初剪，复核射门、补漏并保留完整攻门过程。"
+  default_prompt: "请用 xbotgo-highlights 处理这些足球录像，核对比赛范围与空场尾段，按全时间轴复核攻门，保留原片时间和疑似动作。"

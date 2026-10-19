@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+*.mp4
+*.pem
+id_ed25519*
