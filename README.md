@@ -2,7 +2,20 @@
 
 处理 XbotGo 或其他足球比赛 MP4：生成音频高光初剪，通过全时间轴复核整理射门集锦，保留原片时间和疑似攻门。
 
-当前版本：**v1.1.1**。射门与空场尾段需要连续画面复核；不承诺全自动、无遗漏识别。
+当前版本：**v1.2.0**。新增球门标注审核与多原片任务工作台；射门和进球仍需连续画面复核，不承诺全自动、无遗漏识别。
+
+## v1.2 工作台
+
+先给用户审核两端比赛门与球队/门将身份，再沿全部原片找候选、查看连续短片，将射门、进球与门将动作保存到同一台账，按需导出不同合集。
+
+- 球门审核页支持拖拽改框、确认/排除及下载审核结果。
+- 逐原片保存已查范围，支持恢复任务与复用预览/编码缓存。
+- 进球结果独立于射门状态；确认与疑似分别导出，避免把扑救当成进球。
+- 合集保留1080P全幅、原声、来源时间与事件ID，统一有声/无声源并做完整解码检查。
+
+入口：`python3 xbotgo-highlights/scripts/match_session.py --session /path/to/task/session.json init /path/to/part1.mp4 /path/to/part2.mp4`。后续命令与审核流程见 [任务工作台](xbotgo-highlights/references/session-workflow.md)。
+
+当前未内置自动球门定位、足球跟踪、跨帧坐标投影或自动射门分类。跟拍/变焦后需补参考，不能把审核图的固定坐标直接用于全片过滤。
 
 ## 射门判断逻辑
 
@@ -26,7 +39,7 @@
 
 ## 下载与安装
 
-[下载 v1.1.1 skill 压缩包](releases/xbotgo-highlights-v1.1.1.zip)
+[下载 v1.2.0 skill 压缩包](releases/xbotgo-highlights-v1.2.0.zip)
 
 解压后，把 `xbotgo-highlights` 目录放入 `~/.codex/skills/`，新开会话后说“用 xbotgo-highlights 处理这些足球录像”。
 

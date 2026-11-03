@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>比赛球门审核</title>
+<style>body{font:16px system-ui;background:#12202b;color:#edf3f8;margin:24px;line-height:1.6}article{max-width:1100px;margin:30px 0;padding:16px;background:#203241;border-radius:12px}canvas{width:100%;height:auto;touch-action:none;cursor:crosshair}button,select,input{padding:10px;margin:6px}button{cursor:pointer}a{color:#a8dcff}.note{color:#b8ccd9}</style>
+<h1>先确认两端比赛球门</h1>
+<p>框选真正的比赛大门，排除场边训练小门。可在图上拖拽重画门框，再选择“确认”或“排除”。A/B代表场地两端，不代表画面固定左右。</p>
+<p class="note">这些坐标只对应各自参考帧。镜头跟拍、变焦或换边后需补充参考；本工具尚未自动检测或跟踪球门。</p>
+<main id="refs"></main>
+<label>审核说明 <input id="note" size="60" placeholder="例如：两端比赛门正确，我方守工业楼一端"></label>
+<button id="download">保存审核结果 JSON</button><p id="message" role="status"></p>
+<script>
+const data=__DATA__;
+const decisions=[];
+for(const ref of data.references){
+  const a=document.createElement('article');
+  const title=document.createElement('h2');title.textContent=`${ref.id} · ${ref.source} · ${ref.at}s · 场地${ref.end}端`;a.append(title);
+  const label=document.createElement('p');label.textContent=`${ref.label}；球队：${ref.team}；门将：${ref.keeper}`;a.append(label);
+  const canvas=document.createElement('canvas');a.append(canvas);const ctx=canvas.getContext('2d');
+  const decision={id:ref.id,box:[...ref.box],status:ref.status};decisions.push(decision);
+  const select=document.createElement('select');
+  for(const [value,text] of [['pending','待确认'],['approved','确认是比赛球门'],['rejected','排除这个参考']]){const opt=new Option(text,value);select.add(opt)}
+  select.value=ref.status;select.onchange=()=>decision.status=select.value;a.append(select);
+  const coords=document.createElement('p');a.append(coords);
+  const img=new Image();
+  function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);const [x,y,w,h]=decision.box;ctx.strokeStyle='#48ffb0';ctx.lineWidth=4;ctx.strokeRect(x*canvas.width,y*canvas.height,w*canvas.width,h*canvas.height);coords.textContent='门框 x/y/宽/高：'+decision.box.map(n=>n.toFixed(4)).join(' / ')}
+  img.onload=()=>{canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;draw()};img.onerror=()=>{coords.textContent='参考图片无法加载，请保持本页与 frames 目录的位置关系';select.disabled=true};img.src=ref.image;
+  function position(e){const r=canvas.getBoundingClientRect();return [Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))]}
+  let start=null;
+  canvas.onpointerdown=e=>{start=position(e);canvas.setPointerCapture(e.pointerId)};
+  canvas.onpointermove=e=>{if(!start)return;const end=position(e);const w=Math.abs(end[0]-start[0]),h=Math.abs(end[1]-start[1]);if(w>0&&h>0){decision.box=[Math.min(start[0],end[0]),Math.min(start[1],end[1]),w,h];decision.status='pending';select.value='pending';draw()}};
+  canvas.onpointerup=()=>start=null;canvas.onpointercancel=()=>start=null;
+  document.getElementById('refs').append(a);
+}
+document.getElementById('download').onclick=()=>{
+  const note=document.getElementById('note').value.trim();
+  if(decisions.some(r=>r.status==='approved')&&!note){document.getElementById('message').textContent='请填写审核说明后保存。';return}
+  const result={snapshot:data.snapshot,note,references:decisions};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}));
+  const a=document.createElement('a');a.href=url;a.download='goal-review-result.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  document.getElementById('message').textContent='审核结果已下载。交给 agent 导入任务后继续。';
+};
+</script></html>
