@@ -1,4 +1,4 @@
 interface:
   display_name: "足球比赛集锦"
-  short_description: "先审核两端比赛球门，再按多原片台账复核射门、进球与门将动作。"
-  default_prompt: "请用 $xbotgo-highlights 处理这些足球录像，先生成球门审核页，再按全时间轴复核攻门，分类导出并保留原片时间和疑似动作。"
+  short_description: "从本地比赛录像筛选进球、球队动作或指定球员轨迹，复核后剪辑。"
+  default_prompt: "请用 $xbotgo-highlights 处理这些足球录像，按我的目标筛选事件或跟踪球员，提供带原片时间的回放和复核结果。"

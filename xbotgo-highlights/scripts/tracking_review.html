@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>人员轨迹复核</title>
+<style>
+body{font:16px system-ui;margin:1rem auto;padding:0 1rem;max-width:1120;color:#18212b}
+h1{font-size:1.3rem;overflow-wrap:anywhere}
+figure{margin:0;position:relative;background:#16202b}
+video,canvas{display:block;width:100%;height:auto}
+canvas{position:absolute;inset:0;pointer-events:none}
+select,button{font:inherit;padding:.4rem}
+</style>
+<h1>{{NAME}}</h1>
+<figure><video controls preload="metadata" src="{{VIDEO}}"></video><canvas width="{{WIDTH}}" height="{{HEIGHT}}"></canvas></figure>
+<p><label>轨迹 <select id="track"><option value="">全部编号</option>{{OPTIONS}}</select></label>
+<button id="jump">跳到首次出现</button></p>
+<p id="status" aria-live="polite"></p>
+<script>
+const video=document.querySelector('video'), canvas=document.querySelector('canvas');
+const ctx=canvas.getContext('2d'), select=document.querySelector('#track'), statusText=document.querySelector('#status');
+const start={{START}}, fps={{FPS}}, frameCount={{FRAMES}}, chunkFrames={{CHUNK}}*fps;
+const cache=new Map(), pending=new Set(), errors=new Set();
+function loadBoxes(index, frames){
+  cache.set(index,frames);
+  if(cache.size>5)cache.delete(cache.keys().next().value);
+  draw();
+}
+function load(index){
+  if(pending.has(index)||errors.has(index))return;
+  pending.add(index);
+  let script=document.createElement('script');
+  script.src='boxes-'+index+'.js';
+  script.onload=()=>{pending.delete(index);script.remove()};
+  script.onerror=()=>{pending.delete(index);errors.add(index);script.remove();draw()};
+  document.head.appendChild(script);
+}
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const frame=Math.floor((video.currentTime-start)*fps+0.0001);
+  if(frame<0||frame>=frameCount){statusText.textContent='当前时间在分析区间以外';return}
+  const index=Math.floor(frame/chunkFrames);
+  const batch=cache.get(index);
+  if(!batch){
+    statusText.textContent=errors.has(index)?'轨迹文件读取失败':'正在读取轨迹';
+    load(index);return
+  }
+  const wanted=Number(select.value);
+  const boxes=batch[frame%chunkFrames].filter(b=>!wanted||b[0]===wanted);
+  const scale=canvas.width/900;
+  for(const [id,x,y,w,h] of boxes){
+    const color=wanted?'#42ff83':'hsl('+((id*137)%360)+' 100% 62%)';
+    ctx.strokeStyle=color;ctx.lineWidth=2*scale;ctx.strokeRect(x,y,w,h);
+    ctx.font='bold '+(12*scale)+'px sans-serif';
+    const label='#'+id, textY=Math.max(13*scale,y-3*scale), textW=ctx.measureText(label).width;
+    ctx.fillStyle='#18212b';ctx.fillRect(x,textY-12*scale,textW+4*scale,14*scale);
+    ctx.fillStyle=color;ctx.fillText(label,x+2*scale,textY);
+  }
+  statusText.textContent=wanted
+    ?(boxes.length?'此刻可见该轨迹':'此刻没有该编号的跟踪框')
+    :'本帧可见 '+boxes.length+' 个跟踪框';
+}
+select.onchange=draw;
+document.querySelector('#jump').onclick=()=>{video.currentTime=Number(select.selectedOptions[0].dataset.first??start);draw()};
+video.addEventListener('loadedmetadata',()=>{video.currentTime=start;draw()});
+for(const name of ['seeked','timeupdate','loadeddata'])video.addEventListener(name,draw);
+if(video.requestVideoFrameCallback){
+  const render=()=>{draw();video.requestVideoFrameCallback(render)};
+  video.requestVideoFrameCallback(render);
+}
+</script>
+</html>
